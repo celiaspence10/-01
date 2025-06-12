@@ -1,0 +1,499 @@
+以下是一份**完整打包的文档**，包含前端与后台（文本记录版）的集成方案，以及各文件的功能、开发要点和备注。你可以将此文档存档，以后有新落地页时，直接复用相同的逻辑并做少量改动即可。
+
+---
+
+# 目录
+
+1. [总体结构与流程](#整体结构与流程)
+2. [前端文件说明](#前端文件说明)
+
+   * 2.1. 第1层页面 (`index.html`)
+   * 2.2. 第2层页面 (`page2.html`)
+3. [后端文件说明](#后端文件说明)
+
+   * 3.1. `save.php`
+   * 3.2. `admin.php` (后台查看)
+   * 3.3. `logout.php`
+   * 3.4. `logs.csv` (文本记录)
+4. [常见问题及注意事项](#常见问题及注意事项)
+
+---
+
+## 1. 整体结构与流程
+
+* **核心思路**：在前端页面（第一层 / 第二层）里，通过 JS 向 `/api/save.php` 发送请求，记录用户行为到 `logs.csv`。
+* **动作分类**：前端发送的 `action` 有三种常见值：
+
+  1. `"访问"`：表示用户打开页面时
+  2. `"第一"`：表示用户点击第一层按钮
+  3. `"第二"`：表示用户点击第二层按钮
+* **后台**：`admin.php` 读取 `logs.csv`，将数据以“IP 聚合”的形式显示，并提供“今日统计”等信息。
+* **用途**：这套方案可以应用于任意落地页。只要在新的落地页里保留相同的 JS 逻辑——发送 `action=“访问”/“第一”/“第二”` 到 `save.php`，后台就能记录并显示。
+
+---
+
+## 2. 前端文件说明
+
+### 2.1. 第1层页面（`index.html`）
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>K-Line Trading Community - Free Resources</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- 可选：Facebook Pixel 等 -->
+  <script>
+  /* fbq init 等 */
+  </script>
+
+  <style>
+  /* 样式略 */
+  </style>
+</head>
+<body>
+
+<!-- 页面主要内容：文案、按钮等 -->
+
+<script>
+// 1) 页面加载 => action=“访问”
+const API = '/api/';
+const TZ  = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+
+fetch(API + 'save.php', {
+  method: 'POST',
+  body: new URLSearchParams({
+    action: '访问',   // 关键：在 logs.csv 里就会显示 "访问"
+    tz: TZ
+  }),
+  keepalive: true
+});
+
+// 2) 点击按钮 => action=“第一”
+function sendFirstButton() {
+  const data = new URLSearchParams({
+    action: '第一', // 关键：后端会显示为"第一"按钮
+    tz: TZ
+  });
+
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(API + 'save.php', data);
+  } else {
+    fetch(API + 'save.php', { method:'POST', body: data, keepalive:true });
+  }
+
+  // 可选：像素事件
+  // fbq('track','CompleteRegistration');
+
+  // 跳转到第二层
+  window.location.href = "page2.html";
+}
+</script>
+</body>
+</html>
+```
+
+#### 关键点
+
+1. **页面加载**：发送 `action=“访问”` 到 `save.php`；
+2. **按钮点击**：在点击事件中发送 `action=“第一”` 后跳转；
+3. **如果需要更多动作**（如“第三”）可以自行添加；
+4. **保持** `fetch` 或 `navigator.sendBeacon` 路径指向 `/api/save.php`。
+
+---
+
+### 2.2. 第2层页面（`page2.html`）
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>K-Line Community - WhatsApp Access</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+  /* 样式略 */
+  </style>
+</head>
+<body>
+
+<!-- 内容：例如WhatsApp链接 -->
+
+<script>
+const API = '/api/';
+const TZ  = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+
+// 1) 页面加载 => action=“访问”
+fetch(API + 'save.php', {
+  method:'POST',
+  body:new URLSearchParams({
+    action:'访问',
+    tz: TZ
+  }),
+  keepalive:true
+});
+
+// 2) 点击按钮 => action=“第二”
+document.getElementById('waBtn').addEventListener('click', () => {
+  const data = new URLSearchParams({
+    action:'第二',
+    tz: TZ
+  });
+
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(API + 'save.php', data);
+  } else {
+    fetch(API + 'save.php',{method:'POST', body:data, keepalive:true});
+  }
+
+  // fbq('track','Lead'); // 可选
+  // 不阻止默认 => 跳转WhatsApp
+});
+</script>
+</body>
+</html>
+```
+
+#### 关键点
+
+1. **二层逻辑**与一层相同，只是把按钮点击的 `action` 改为 `"第二"`。
+2. 同理，页面访问时 `action=“访问”`。
+
+---
+
+## 3. 后端文件说明
+
+### 3.1. `save.php`
+
+```php
+<?php
+/**
+ * save.php
+ * 接收前端发来的:
+ *   - action: "访问"/"第一"/"第二"/其他
+ *   - tz: 前端的时区字符串
+ * 并将之写入 logs.csv 文件
+ * 存储时间统一用 UTC (gmdate)
+ */
+
+header('Content-Type: application/json; charset=UTF-8');
+
+// 获取 IP (ipv4 或 ipv6)
+$ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+// 接收参数
+$action = $_REQUEST['action'] ?? '未知';
+$tz     = $_REQUEST['tz']     ?? '';
+
+// 当前UTC时间 => 用 gmdate
+$createdAtUTC = gmdate('Y-m-d H:i:s');
+
+// 拼 CSV 行 => "2025-05-27 06:30:00","1.2.3.4","第一","America/Denver"
+$line = sprintf("\"%s\",\"%s\",\"%s\",\"%s\"\n",
+  $createdAtUTC,
+  $ip,
+  $action,
+  $tz
+);
+
+$filePath = __DIR__ . '/logs.csv';
+file_put_contents($filePath, $line, FILE_APPEND | LOCK_EX);
+
+// 返回JSON
+echo json_encode([
+  "status" => "ok",
+  "utc_time" => $createdAtUTC,
+  "ip" => $ip,
+  "action" => $action
+]);
+```
+
+#### 关键点
+
+* **`logs.csv`** ：务必确保与 `save.php` 同目录，并有可写权限(如 0666)。
+* 记录格式：
+
+  1. UTC时间
+  2. IP
+  3. 动作 (访问/第一/第二/...)
+  4. 前端时区
+
+---
+
+### 3.2. `admin.php` (后台查看)
+
+```php
+<?php
+/********************************************************
+ * admin.php — 上方“今日统计”，下方“按IP汇总”
+ * 
+ * 读取 logs.csv, 第0列:UTC时间, 第1列:IP, 第2列:action, 第3列:tz
+ * 1) 今日统计(以 UTC 日期为准)
+ * 2) IP 汇总(每个IP一行): 
+ *    - 总次数
+ *    - 最新 UTC时间 & 曼谷(+7)时间 & 前端时区
+ *    - 是否出现过 "访问" / "第一" / "第二"
+ *    - 同IP总次数 >2 => 行标红
+ ********************************************************/
+
+session_start();
+$adminPassword = "MySuperSecret"; // 后台登录密码
+
+// ---------- 登录 ----------
+if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) {
+  if (isset($_POST['pwd']) && $_POST['pwd'] === $adminPassword) {
+    $_SESSION['is_admin'] = true;
+    header("Location: admin.php");
+    exit;
+  }
+  ?>
+  <!DOCTYPE html>
+  <html>
+  <head><meta charset="utf-8"><title>后台登录</title></head>
+  <body>
+    <h1>后台登录</h1>
+    <form method="post">
+      <label>密码：<input type="password" name="pwd"></label>
+      <button type="submit">登录</button>
+    </form>
+  </body>
+  </html>
+  <?php
+  exit;
+}
+
+// ---------- 读取 logs.csv ----------
+header('Content-Type: text/html; charset=UTF-8');
+$filePath = __DIR__ . '/logs.csv';
+
+if (!file_exists($filePath) || filesize($filePath) === 0) {
+  $rawRows = [];
+} else {
+  $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+  // 倒序 => 最新在前
+  $lines = array_reverse($lines);
+
+  $rawRows = [];
+  foreach ($lines as $line) {
+    // "2025-05-27 06:30:00","1.2.3.4","第一","America/Denver"
+    $fields = str_getcsv($line);
+    $rawRows[] = $fields;
+  }
+}
+
+// ========== 1) 今日统计 (UTC日期) ==========
+$todayDate = gmdate('Y-m-d');
+$todayIps = [];
+$todayFirst = 0;
+$todaySecond= 0;
+
+foreach ($rawRows as $r) {
+  if (count($r) < 3) continue;
+  $utcTime = $r[0];
+  $ip      = $r[1];
+  $action  = $r[2];
+
+  $logDate = substr($utcTime, 0, 10); // "2025-05-27"
+  if ($logDate === $todayDate) {
+    $todayIps[$ip] = true;
+    if ($action === '第一')  $todayFirst++;
+    if ($action === '第二')  $todaySecond++;
+  }
+}
+$todayUniqueIpCount = count($todayIps);
+
+// ========== 2) 按 IP 汇总显示 ==========
+$summary = [];
+foreach ($rawRows as $r) {
+  if (count($r) < 3) continue;
+  $utcTime = $r[0];
+  $ip      = $r[1];
+  $action  = $r[2];
+  $tz      = $r[3] ?? '';
+
+  if (!isset($summary[$ip])) {
+    $summary[$ip] = [
+      'ip'        => $ip,
+      'total'     => 0,
+      'lastUtc'   => '',
+      'lastTz'    => '',
+      'lastBkk'   => '',
+      'doneVisit' => false,
+      'doneFirst' => false,
+      'doneSecond'=> false,
+    ];
+  }
+
+  $summary[$ip]['total']++;
+
+  // 由于最新记录在前, 第一次赋值就是"最后一次"信息
+  if ($summary[$ip]['lastUtc'] === '') {
+    $summary[$ip]['lastUtc'] = $utcTime;
+    $summary[$ip]['lastTz']  = $tz;
+    // 计算曼谷时间 => +7
+    $t = strtotime($utcTime);
+    if ($t !== false) {
+      $t += 7*3600;
+      $summary[$ip]['lastBkk'] = date('Y-m-d H:i:s', $t);
+    }
+  }
+
+  // 标记动作
+  if ($action === '访问')  $summary[$ip]['doneVisit']  = true;
+  if ($action === '第一')  $summary[$ip]['doneFirst']  = true;
+  if ($action === '第二')  $summary[$ip]['doneSecond'] = true;
+}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>后台日志 - 今日统计 & IP汇总</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #eee; }
+    .logout { margin-bottom: 10px; }
+    .stats { margin-bottom: 10px; padding: 10px; background: #fafafa; }
+    .red-row { background-color: #ffe5e5; }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="logout">
+  <form method="post" action="logout.php" style="display:inline;">
+    <button type="submit">退出登录</button>
+  </form>
+</div>
+
+<!-- 今日统计 -->
+<div class="stats">
+  <strong>今日统计 (UTC 日期: <?php echo $todayDate; ?>)</strong><br>
+  独立IP访问量： <?php echo $todayUniqueIpCount; ?><br>
+  第一按钮点击数： <?php echo $todayFirst; ?><br>
+  第二按钮点击数： <?php echo $todaySecond; ?><br>
+</div>
+
+<h1>按 IP 汇总</h1>
+<table>
+  <thead>
+    <tr>
+      <th>IP</th>
+      <th>总次数</th>
+      <th>最后UTC时间</th>
+      <th>最后曼谷(+7)</th>
+      <th>最后前端时区</th>
+      <th>访问</th>
+      <th>第一</th>
+      <th>第二</th>
+    </tr>
+  </thead>
+  <tbody>
+    <?php foreach($summary as $ip => $info): ?>
+      <?php
+        $rowClass = ($info['total'] > 2) ? 'red-row' : '';
+      ?>
+      <tr class="<?php echo $rowClass; ?>">
+        <td><?php echo htmlspecialchars($info['ip']); ?></td>
+        <td class="center"><?php echo $info['total']; ?></td>
+        <td><?php echo htmlspecialchars($info['lastUtc']); ?></td>
+        <td><?php echo htmlspecialchars($info['lastBkk']); ?></td>
+        <td><?php echo htmlspecialchars($info['lastTz']); ?></td>
+        <td class="center"><?php echo $info['doneVisit']  ? '√' : ''; ?></td>
+        <td class="center"><?php echo $info['doneFirst']  ? '√' : ''; ?></td>
+        <td class="center"><?php echo $info['doneSecond'] ? '√' : ''; ?></td>
+      </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
+
+</body>
+</html>
+```
+
+#### 关键点
+
+1. **今日统计**
+
+   * 以当前UTC日期 `gmdate('Y-m-d')` 为基准；
+   * 遍历时，如果记录的 UTC 时间（前10位）与今日相同，则计入“独立IP”+ 判断是否出现 `“第一”`/`“第二”`。
+2. **IP 聚合表**
+
+   * 每个 IP 只显示**一行**；
+   * `total` 是该IP的总次数；
+   * `lastUtc`/`lastBkk`/`lastTz`：该 IP 最后一次（也就是最新）记录信息；
+   * `访问 / 第一 / 第二` 3列用打勾`√`或空白表示是否出现过；
+   * **若 total > 2**，整行 `red-row`（浅红背景）。
+3. **剩余文件**：
+
+   * `save.php` 依然把数据写入 `logs.csv`；
+   * `logout.php` 用来退出后台；
+   * `logs.csv` 记录文本数据。
+
+---
+
+### 3.3. `logout.php`
+
+```php
+<?php
+// logout.php
+session_start();
+$_SESSION['is_admin'] = false;
+session_destroy();
+header("Location: admin.php");
+exit;
+```
+
+**作用**：结束 session，让你可重新登录后台。
+
+---
+
+### 3.4. `logs.csv` (文本记录)
+
+* 初始时一个空白文件，如 `chmod 666 logs.csv`，确保 PHP 可写。
+* 每次请求 `save.php` 时，追加一行 CSV：
+
+  ```
+  "2025-05-27 06:30:00","1.2.3.4","第一","America/Denver"
+  ```
+
+---
+
+## 4. 常见问题及注意事项
+
+1. **IPv4 / IPv6 显示**
+
+   * `$_SERVER['REMOTE_ADDR']` 会自动给出 IPv4 或 IPv6，看客户端/代理情况；
+   * 如果在云Flare或其它CDN后面，需要改用 `HTTP_X_FORWARDED_FOR` 获取真实IP。
+
+2. **时区**
+
+   * 后端统一存**UTC**，避免时差混乱；
+   * 在后台 `admin.php` 里再+7小时转成曼谷时间。你也可换成其他时差如 +8 或 +9。
+   * 前端 `tz` 只作参考显示，可不影响后台逻辑。
+
+3. **多层页面**
+
+   * 若有更多页面(第三、第四层)，只需在点击/访问时发送 `action=“第三”` / `“第四”`，后台可再扩展列。
+
+4. **其他功能**
+
+   * 若想统计“第三”、“提交表单”等，都可沿用此思路；
+   * 若访问量特别大，或需复杂查询，可考虑改用数据库(MySQL/PostgreSQL) 做记录。
+
+5. **注意**：如果你不想把前端写成中文动作，也可用 `"joinBtn"`, `"openBtn"`, `"visit"`。只是后台 `admin.php` 需要做相应匹配或映射。不过此文档示例是**直接发送中文**最直观。
+
+---
+
+## 总结
+
+* 本方案前端 **只需** 在页面加载时 `action=“访问”`、在按钮点击时 `action=“第一”/“第二”`；
+* 后端 `save.php` 统一写 `logs.csv`；
+* 后台 `admin.php` 将所有记录按 IP 聚合，用表格展示各种信息；
+* 超过 2 次访问自动标红，方便识别“高频客户”。
+
+今后如果要**开发新的落地页**，只要复制以上前端（带 `action=“访问”/“第一”/“第二”`）JS，并保留同样的 `/api/save.php + admin.php` 文件结构即可复用。

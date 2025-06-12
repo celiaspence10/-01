@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>K‑Line Trading Institute</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: { bg:'#0d1117', neon:'#00d1b2', purple:'#9b5cff' },
+      fontFamily:{ pop:['Poppins','sans-serif']},
+      keyframes:{
+        float:{'0%,100%':{transform:'translateY(0)'},'50%':{transform:'translateY(-6px)'}},
+        glow:{'0%,100%':{boxShadow:'0 0 8px rgba(0,209,178,.6),0 0 16px rgba(0,209,178,.4)'},
+              '50%':{boxShadow:'0 0 18px rgba(0,209,178,.9),0 0 32px rgba(0,209,178,.8)'}}
+      },
+      animation:{float:'float 6s ease-in-out infinite',glow:'glow 3s ease-in-out infinite'}
+    }
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+ body{font-family:Poppins,system-ui,sans-serif;background:#0d1117;color:#e5e7eb}
+ .neon-btn{position:relative;overflow:hidden}
+ .neon-btn::before{content:'';position:absolute;inset:0;border-radius:.5rem;filter:blur(8px);
+   background:linear-gradient(45deg,#00d1b2,#9b5cff,#00d1b2);background-size:400%;
+   animation:moveBG 6s linear infinite;z-index:-1}
+ @keyframes moveBG{0%{background-position:0 0}100%{background-position:400% 0}}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="relative isolate text-center py-32 px-4">
+  <div class="absolute inset-0 -z-10 bg-[url('https://images.unsplash.com/photo-1529101091764-c3526daf38fe?auto=format&fit=crop&w=1350&q=80')] bg-cover opacity-25"></div>
+  <h1 class="text-[8vw] md:text-5xl font-extrabold leading-tight">Master&nbsp;K‑Line Trading<br><span class="text-neon">with&nbsp;Data‑Driven Precision</span></h1>
+  <p class="mt-4 text-gray-300">Candlestick analytics • Back‑tested setups • Live market labs.</p>
+  <a href="https://wa.me/15066121867?text=Hello%2C+I+would+like+to+know+more+potential+stocks%21"
+     target="_blank"
+     class="neon-btn mt-10 inline-block px-10 py-4 font-semibold text-white rounded-md hover:scale-105 transition">Send us a Message on WhatsApp.</a>
+</section>
+
+<!-- ABOUT + 动态 K 线 -->
+<section class="py-20 px-6 bg-[#0f172a]">
+ <div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+   <div>
+     <h2 class="text-2xl font-semibold mb-4">What is K‑Line Trading?</h2>
+     <p class="mb-4 text-gray-300">K‑Line condenses OHLC into elegant candles. We pair classical formations with quantitative edge testing to detect momentum before the masses.</p>
+     <p class="text-gray-300">Join thousands mastering repeatable playbooks across stocks, forex &amp; crypto — fueled by real data.</p>
+   </div>
+
+   <!-- TradingView 小部件 -->
+   <div class="rounded-lg overflow-hidden shadow-xl">
+     <div class="tradingview-widget-container">
+       <div id="tv-mini-chart"></div>
+     </div>
+     <script async src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js">
+     {
+       "symbol": "NASDAQ:AAPL",
+       "width": "100%",
+       "height": "220",
+       "locale": "en",
+       "dateRange": "3M",
+       "colorTheme": "dark",
+       "isTransparent": false,
+       "chartType": "candle",
+       "autosize": false,
+       "largeChartUrl": ""
+     }
+     </script>
+   </div>
+ </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="py-20 bg-[#020617]">
+  <div class="max-w-5xl mx-auto px-6">
+    <h2 class="text-2xl font-semibold text-center mb-12">How It Works</h2>
+    <div class="grid md:grid-cols-3 gap-10 text-sm">
+      <div class="p-6 bg-white/5 rounded-lg shadow-lg">
+        <h3 class="font-semibold text-neon mb-2">1️⃣ Download Kit</h3>
+        <p>Get the quick‑start eBook + video walkthrough instantly after WhatsApp onboarding.</p>
+      </div>
+      <div class="p-6 bg-white/5 rounded-lg shadow-lg">
+        <h3 class="font-semibold text-neon mb-2">2️⃣ Attend Live Labs</h3>
+        <p>Daily streams annotate real‑time charts, manage risk &amp; answer Q&amp;A.</p>
+      </div>
+      <div class="p-6 bg-white/5 rounded-lg shadow-lg">
+        <h3 class="font-semibold text-neon mb-2">3️⃣ Iterate &amp; Scale</h3>
+        <p>Log trades, back‑test ideas, and get feedback to refine your edge.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY CHOOSE -->
+<section class="py-20 bg-slate-900">
+ <div class="max-w-6xl mx-auto px-6">
+   <h2 class="text-2xl font-semibold text-center mb-12">Why Choose Us</h2>
+   <div class="grid md:grid-cols-3 gap-10">
+     <div class="p-6 bg-white/5 rounded-lg shadow hover:shadow-purple transition">
+       <h3 class="font-semibold text-neon mb-2">Evidence‑Based</h3>
+       <p class="text-gray-300 text-sm">20‑year datasets, Monte Carlo tests &amp; zero curve‑fitting.</p>
+     </div>
+     <div class="p-6 bg-white/5 rounded-lg shadow hover:shadow-purple transition">
+       <h3 class="font-semibold text-neon mb-2">Live Chart Labs</h3>
+       <p class="text-gray-300 text-sm">Daily streams annotate setups &amp; manage risk in real time.</p>
+     </div>
+     <div class="p-6 bg-white/5 rounded-lg shadow hover:shadow-purple transition">
+       <h3 class="font-semibold text-neon mb-2">Global Community</h3>
+       <p class="text-gray-300 text-sm">4 700+ traders share journals, bots &amp; accountability.</p>
+     </div>
+   </div>
+ </div>
+</section>
+
+<!-- SNAPSHOT -->
+<section class="py-24 bg-[#0f172a] text-center">
+  <h2 class="text-2xl font-semibold mb-8">Weekly P/L Snapshot</h2>
+  <div class="max-w-xs mx-auto glass rounded-xl p-0.5 animate-glow">
+   <table class="w-full text-sm">
+    <thead><tr><th class="py-2">Symbol</th><th>P/L%</th></tr></thead>
+    <tbody>
+      <tr class="bg-[#0d1117] border-b border-white/5"><td>NVDA</td><td class="text-neon">+8.1</td></tr>
+      <tr class="bg-[#0d1117] border-b border-white/5"><td>AAPL</td><td class="text-neon">+5.2</td></tr>
+      <tr class="bg-[#0d1117] border-b border-white/5"><td>TSLA</td><td class="text-red-500">‑7.3</td></tr>
+      <tr class="bg-[#0d1117]"><td>MSFT</td><td class="text-neon">+4.3</td></tr>
+    </tbody>
+   </table>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="py-24 text-center">
+ <h2 class="text-2xl font-semibold mb-6">Send us a message &amp; get started today</h2>
+ <a href="https://wa.me/15066121867?text=Hello%2C+I+would+like+to+know+more+potential+stocks%21"
+    target="_blank"
+    class="neon-btn inline-block px-12 py-4 font-semibold rounded-md transition hover:scale-105">WhatsApp → Start Now</a>
+</section>
+
+<!-- PRIVACY -->
+<section id="privacy" class="py-16 bg-slate-900/90 text-gray-300 px-6">
+  <div class="max-w-4xl mx-auto">
+    <details class="bg-white/5 rounded-lg p-6">
+      <summary class="cursor-pointer font-semibold text-neon">Privacy &amp; Disclaimer</summary>
+      <p class="mt-4 text-sm leading-relaxed">
+        We respect your privacy. Your email, name and phone number will only be used to provide educational materials,
+        alerts and community updates. We never sell or lease your data. Trading involves risk; past performance is not
+        indicative of future results. By joining, you accept that you trade at your own risk and the institute is not
+        liable for any losses.
+      </p>
+    </details>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-slate-800 text-gray-400 text-sm py-8 text-center">
+  © 2025 K‑Line Trading Institute · <a href="#privacy" class="hover:text-neon">Privacy</a>
+</footer>
+
+<!-- 统计点击 JS (如需) -->
+<script>
+function logClick(slot){
+  /* 你原来的 /api/save.php 上报逻辑 */
+}
+document.querySelectorAll('.neon-btn').forEach(btn=>btn.addEventListener('click',()=>logClick(1)));
+</script>
+</body>
+</html>
