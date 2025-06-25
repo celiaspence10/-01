@@ -1,0 +1,36 @@
+//@version=5
+strategy("High Profit Low Drawdown Strategy", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+// Input parameters
+fastLen = input.int(9, "Fast MA Length", minval=1)
+slowLen = input.int(21, "Slow MA Length", minval=1)
+stopLossPerc = input.float(1.0, "Stop Loss %", minval=0.1)
+takeProfitPerc = input.float(2.0, "Take Profit %", minval=0.1)
+
+// Moving averages
+fastMA = ta.ema(close, fastLen)
+slowMA = ta.ema(close, slowLen)
+
+// Entry conditions
+longCond = ta.crossover(fastMA, slowMA)
+shortCond = ta.crossunder(fastMA, slowMA)
+
+// Plot moving averages
+plot(fastMA, color=color.blue, title="Fast MA")
+plot(slowMA, color=color.orange, title="Slow MA")
+
+// Execute trades
+if longCond
+    strategy.entry("Long", strategy.long)
+if shortCond
+    strategy.entry("Short", strategy.short)
+
+// Risk management
+if strategy.position_size > 0
+    strategy.exit("TP/SL Long", "Long", stop=strategy.position_avg_price * (1 - stopLossPerc / 100), limit=strategy.position_avg_price * (1 + takeProfitPerc / 100))
+if strategy.position_size < 0
+    strategy.exit("TP/SL Short", "Short", stop=strategy.position_avg_price * (1 + stopLossPerc / 100), limit=strategy.position_avg_price * (1 - takeProfitPerc / 100))
+
+// Plot trade direction on chart
+plotshape(longCond, title="Long Signal", location=location.belowbar, color=color.green, style=shape.arrowup, size=size.tiny)
+plotshape(shortCond, title="Short Signal", location=location.abovebar, color=color.red, style=shape.arrowdown, size=size.tiny)
