@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Join Our AI Stock WhatsApp Group</title>
+
+<!-- Google Font：Poppins -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --grad1:#00172b;
+  --grad2:#180040;
+  --txt:#fff;
+  --muted:#bfbfbf;
+  --accent:#ffd000;
+  --accent-hover:#e4ba00;
+  --accent-active:#c7a100;
+  --whatsapp:#25d366;
+  --radius:10px;
+  --maxW:440px;
+  --font:'Poppins',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;display:flex;justify-content:center;align-items:center;
+  font-family:var(--font);color:var(--txt);
+  background:linear-gradient(160deg,var(--grad1) 0%,var(--grad2) 100%);
+  overflow-x:hidden;
+}
+#wrapper{max-width:var(--maxW);text-align:center;padding:24px 18px;animation:fadeln .8s ease-out;}
+body::before{
+  content:"";position:fixed;inset:0;
+  background:url('https://i.imgur.com/um1O9IU.png') center/cover;opacity:.08;pointer-events:none;
+}
+
+/* 文案层级 */
+h1{
+  font-size:2em;line-height:1.25;margin-bottom:14px;font-weight:800;
+  background:linear-gradient(90deg,#ff5efb 0%,#ffffae 40%,#43e9ff 80%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.tagline{font-size:1em;color:var(--muted);margin-bottom:48px;}
+.tagline span{color:var(--whatsapp);}
+
+/* CTA */
+.cta{
+  display:block;width:100%;padding:18px 0;
+  background:var(--accent);color:#000;font-weight:700;font-size:1.05em;
+  border:none;border-radius:var(--radius);text-decoration:none;transition:.18s;
+  box-shadow:0 6px 14px rgba(0,0,0,.4);
+}
+.cta:hover{background:var(--accent-hover);transform:translateY(-2px)}
+.cta:active{background:var(--accent-active);transform:none}
+
+.note{font-size:.85em;color:var(--muted);margin-top:22px;line-height:1.4}
+
+/* 动画 */
+@keyframes fadeln{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+</style>
+</head>
+
+<body>
+  <main id="wrapper">
+    <h1>🚀 Unlock Your<br>99.8 %-Accurate<br>AI Stock Report</h1>
+
+    <p class="tagline">
+      Free in 1.5&nbsp;s • <span>WhatsApp group delivery</span> • $1,000 DOGE giveaway 🏆
+    </p>
+
+    <!-- 关键修改：按钮文案 + 群组链接 -->
+    <a href="https://sdun.io/vdhph2" target="_blank" class="cta">
+      Join WhatsApp Group →
+    </a>
+
+    <p class="note">
+      Tap the button, join the group, drop a stock ticker (e.g. AAPL),<br>
+      and receive your AI report in under 60&nbsp;seconds.
+    </p>
+  </main>
+</body>
+</html>
+
+
+
+
