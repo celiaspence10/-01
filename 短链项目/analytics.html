@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaign 分析 - TikTok广告追踪系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 返回按钮 -->
+        <button onclick="window.location.href='dashboard.html'" 
+                class="mb-6 text-indigo-600 hover:text-indigo-800 font-medium">
+            ← 返回控制台
+        </button>
+
+        <!-- Campaign 信息 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4" id="campaignName">加载中...</h1>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">总点击数</p>
+                    <p class="text-2xl font-bold text-indigo-600" id="totalClicks">0</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">独立访客</p>
+                    <p class="text-2xl font-bold text-purple-600" id="uniqueIPs">0</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">主要国家</p>
+                    <p class="text-2xl font-bold text-pink-600" id="topCountry">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">主要设备</p>
+                    <p class="text-2xl font-bold text-blue-600" id="topDevice">-</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">24小时点击分布</h3>
+                <canvas id="hourlyChart"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">国家分布</h3>
+                <canvas id="countryChart"></canvas>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">设备类型</h3>
+                <canvas id="deviceChart"></canvas>
+            </div>
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">URL性能对比</h3>
+                <canvas id="urlChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 最近点击记录 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">最近点击记录</h3>
+            <div id="recentClicks" class="overflow-x-auto">
+                <p class="text-gray-400 text-center py-8">加载中...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const campaignId = urlParams.get('id');
+
+        let charts = {};
+
+        async function loadAnalytics() {
+            try {
+                const response = await fetch(`/api_enhanced.php?action=analytics&id=${campaignId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderAnalytics(data);
+                } else {
+                    alert('加载失败');
+                }
+            } catch (error) {
+                console.error('加载失败:', error);
+                alert('加载失败，请刷新重试');
+            }
+        }
+
+        function renderAnalytics(data) {
+            const { campaign, analytics, recent_clicks } = data;
+
+            document.getElementById('campaignName').textContent = campaign.name;
+            document.getElementById('totalClicks').textContent = analytics.total_clicks.toLocaleString();
+            document.getElementById('uniqueIPs').textContent = analytics.unique_ips.toLocaleString();
+
+            const topCountry = Object.keys(analytics.countries)[0] || '-';
+            const topDevice = Object.keys(analytics.devices)[0] || '-';
+            document.getElementById('topCountry').textContent = topCountry;
+            document.getElementById('topDevice').textContent = topDevice;
+
+            renderCharts(analytics);
+            renderRecentClicks(recent_clicks);
+        }
+
+        function renderCharts(analytics) {
+            // 24小时分布图
+            if (charts.hourly) charts.hourly.destroy();
+            charts.hourly = new Chart(document.getElementById('hourlyChart'), {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    datasets: [{
+                        label: '点击数',
+                        data: analytics.hourly,
+                        borderColor: 'rgb(99, 102, 241)',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // 国家分布图
+            if (charts.country) charts.country.destroy();
+            const countryLabels = Object.keys(analytics.countries).slice(0, 5);
+            const countryData = countryLabels.map(c => analytics.countries[c]);
+            charts.country = new Chart(document.getElementById('countryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: countryLabels,
+                    datasets: [{
+                        data: countryData,
+                        backgroundColor: [
+                            'rgb(99, 102, 241)',
+                            'rgb(168, 85, 247)',
+                            'rgb(236, 72, 153)',
+                            'rgb(59, 130, 246)',
+                            'rgb(34, 197, 94)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // 设备类型图
+            if (charts.device) charts.device.destroy();
+            const deviceLabels = Object.keys(analytics.devices);
+            const deviceData = deviceLabels.map(d => analytics.devices[d]);
+            charts.device = new Chart(document.getElementById('deviceChart'), {
+                type: 'bar',
+                data: {
+                    labels: deviceLabels,
+                    datasets: [{
+                        label: '点击数',
+                        data: deviceData,
+                        backgroundColor: 'rgba(168, 85, 247, 0.7)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // URL性能图
+            if (charts.url) charts.url.destroy();
+            const urlLabels = Object.keys(analytics.url_performance).map(i => `URL ${parseInt(i)+1}`);
+            const urlData = Object.values(analytics.url_performance);
+            charts.url = new Chart(document.getElementById('urlChart'), {
+                type: 'bar',
+                data: {
+                    labels: urlLabels,
+                    datasets: [{
+                        label: '点击数',
+                        data: urlData,
+                        backgroundColor: 'rgba(236, 72, 153, 0.7)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+        }
+
+        function renderRecentClicks(clicks) {
+            if (clicks.length === 0) {
+                document.getElementById('recentClicks').innerHTML = 
+                    '<p class="text-gray-400 text-center py-8">暂无点击记录</p>';
+                return;
+            }
+
+            const html = `
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">时间</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">国家/城市</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">设备</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">浏览器</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        ${clicks.slice(0, 50).map(click => `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm">${new Date(click.created_at).toLocaleString()}</td>
+                                <td class="px-4 py-3 text-sm">${click.country || '-'} / ${click.city || '-'}</td>
+                                <td class="px-4 py-3 text-sm">${click.device_type || '-'}</td>
+                                <td class="px-4 py-3 text-sm">${click.browser || '-'}</td>
+                                <td class="px-4 py-3 text-sm font-mono">${click.ip || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('recentClicks').innerHTML = html;
+        }
+
+        // 加载数据
+        if (campaignId) {
+            loadAnalytics();
+        } else {
+            alert('缺少 Campaign ID');
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

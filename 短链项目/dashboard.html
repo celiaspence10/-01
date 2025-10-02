@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok广告追踪系统 - 增强版控制台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <style>
+        .stat-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .campaign-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+        .campaign-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #6366f1;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">TikTok广告追踪系统</h1>
+            <p class="text-gray-600">专业的Campaign管理与深度数据分析平台</p>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="stat-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-600">活跃Campaign</h3>
+                    <span class="text-2xl">📊</span>
+                </div>
+                <p class="text-3xl font-bold text-indigo-600" id="totalCampaigns">0</p>
+                <p class="text-xs text-gray-500 mt-1">系统运行中</p>
+            </div>
+
+            <div class="stat-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-600">总点击数</h3>
+                    <span class="text-2xl">🖱️</span>
+                </div>
+                <p class="text-3xl font-bold text-purple-600" id="totalClicks">0</p>
+                <p class="text-xs text-gray-500 mt-1">累计流量</p>
+            </div>
+
+            <div class="stat-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-600">独立访客</h3>
+                    <span class="text-2xl">👥</span>
+                </div>
+                <p class="text-3xl font-bold text-pink-600" id="uniqueVisitors">0</p>
+                <p class="text-xs text-gray-500 mt-1">去重统计</p>
+            </div>
+
+            <div class="stat-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-600">今日点击</h3>
+                    <span class="text-2xl">📅</span>
+                </div>
+                <p class="text-3xl font-bold text-blue-600" id="todayClicks">0</p>
+                <p class="text-xs text-gray-500 mt-1">实时更新</p>
+            </div>
+        </div>
+
+        <!-- Campaign 列表 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Campaign 列表</h2>
+                <button onclick="window.location.href='create_campaign.html'" 
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition">
+                    + 创建新Campaign
+                </button>
+            </div>
+            <div id="campaignsList">
+                <div class="text-center py-12 text-gray-400">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let campaignsData = [];
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api_enhanced.php?action=list');
+                const data = await response.json();
+                
+                if (data.success) {
+                    campaignsData = data.campaigns;
+                    renderCampaigns(campaignsData);
+                    updateStats();
+                }
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('campaignsList').innerHTML = 
+                    '<div class="text-center py-12 text-red-500">加载失败，请刷新重试</div>';
+            }
+        }
+
+        function updateStats() {
+            const totalCampaigns = campaignsData.length;
+            const totalClicks = campaignsData.reduce((sum, c) => sum + parseInt(c.total_clicks || 0), 0);
+            
+            document.getElementById('totalCampaigns').textContent = totalCampaigns;
+            document.getElementById('totalClicks').textContent = totalClicks.toLocaleString();
+            document.getElementById('uniqueVisitors').textContent = '统计中...';
+            document.getElementById('todayClicks').textContent = '统计中...';
+        }
+
+        function renderCampaigns(campaigns) {
+            if (campaigns.length === 0) {
+                document.getElementById('campaignsList').innerHTML = 
+                    '<div class="text-center py-12 text-gray-400">暂无Campaign</div>';
+                return;
+            }
+
+            const html = campaigns.map(campaign => {
+                const urls = JSON.parse(campaign.urls || '[]');
+                const shortUrl = `https://rstvu.com/${campaign.id}`;
+                
+                return `
+                    <div class="campaign-card rounded-xl p-6 mb-4 bg-white">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">${campaign.name || '未命名'}</h3>
+                                <a href="${shortUrl}" target="_blank" 
+                                   class="text-indigo-600 hover:text-indigo-800 font-mono text-sm mb-3 inline-block">
+                                    ${shortUrl}
+                                </a>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                    <div>
+                                        <p class="text-xs text-gray-500">总点击</p>
+                                        <p class="text-lg font-bold text-gray-800">${parseInt(campaign.total_clicks || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500">URL数量</p>
+                                        <p class="text-lg font-bold text-gray-800">${urls.length}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500">当前索引</p>
+                                        <p class="text-lg font-bold text-gray-800">${campaign.current_index}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500">创建时间</p>
+                                        <p class="text-lg font-bold text-gray-800">${new Date(campaign.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <button onclick="viewAnalytics('${campaign.id}')" 
+                                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                                    查看分析
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('campaignsList').innerHTML = html;
+        }
+
+        function viewAnalytics(id) {
+            window.location.href = `analytics.html?id=${id}`;
+        }
+
+        // 页面加载时执行
+        loadDashboard();
+        
+        // 每30秒自动刷新
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok广告追踪系统 - Campaign管理后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .campaigns-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .section-header h2 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .campaigns-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .campaigns-table th {
+            background: #f8f9fa;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .campaigns-table td {
+            padding: 16px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .campaigns-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .short-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .short-link:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #e74c3c;
+        }
+
+        .btn-reload {
+            margin-top: 20px;
+            background: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 TikTok广告追踪系统</h1>
+            <p>专业Campaign管理与数据分析</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>📊 活跃Campaign</h3>
+                <div class="value" id="totalCampaigns">0</div>
+                <div class="label">系统运行中</div>
+            </div>
+            <div class="stat-card">
+                <h3>👆 总点击率</h3>
+                <div class="value" id="totalClicks">0</div>
+                <div class="label">CTR: 0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>🔗 轮询链接</h3>
+                <div class="value" id="avgLinks">0</div>
+                <div class="label">平均 0 个/Campaign</div>
+            </div>
+            <div class="stat-card">
+                <h3>📅 今日点击</h3>
+                <div class="value" id="todayClicks">0</div>
+                <div class="label">实时统计</div>
+            </div>
+        </div>
+
+        <!-- Campaigns List -->
+        <div class="campaigns-section">
+            <div class="section-header">
+                <h2>Campaign列表</h2>
+                <button class="btn btn-primary" onclick="window.location.href='create_campaign.html'">
+                    ➕ 创建Campaign
+                </button>
+            </div>
+
+            <div id="campaignsContent">
+                <div class="loading">正在加载...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 加载 Campaigns
+        async function loadCampaigns() {
+            try {
+                const response = await fetch('/api/list.php');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                const campaigns = data.campaigns || [];
+                
+                // 更新统计数据
+                updateStats(campaigns);
+                
+                // 渲染表格
+                renderTable(campaigns);
+                
+            } catch (error) {
+                console.error('加载失败:', error);
+                document.getElementById('campaignsContent').innerHTML = `
+                    <div class="error">
+                        <p>❌ 加载失败：${error.message}</p>
+                        <button class="btn btn-reload" onclick="loadCampaigns()">重试</button>
+                    </div>
+                `;
+            }
+        }
+
+        // 更新统计数据
+        function updateStats(campaigns) {
+            const totalCampaigns = campaigns.length;
+            const totalClicks = campaigns.reduce((sum, c) => sum + (parseInt(c.total_clicks) || 0), 0);
+            
+            let totalUrls = 0;
+            campaigns.forEach(c => {
+                try {
+                    const urls = JSON.parse(c.urls || '[]');
+                    totalUrls += urls.length;
+                } catch (e) {}
+            });
+            
+            const avgLinks = totalCampaigns > 0 ? Math.round(totalUrls / totalCampaigns) : 0;
+            
+            document.getElementById('totalCampaigns').textContent = totalCampaigns;
+            document.getElementById('totalClicks').textContent = totalClicks;
+            document.getElementById('avgLinks').textContent = avgLinks;
+            document.getElementById('todayClicks').textContent = '0'; // 今日点击需要额外统计
+        }
+
+        // 渲染表格
+        function renderTable(campaigns) {
+            if (campaigns.length === 0) {
+                document.getElementById('campaignsContent').innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <p>暂无Campaign，点击上方按钮创建</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="campaigns-table">
+                    <thead>
+                        <tr>
+                            <th>Campaign名称</th>
+                            <th>短链接</th>
+                            <th>总点击数</th>
+                            <th>URL数量</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            campaigns.forEach(campaign => {
+                const shortUrl = `https://rstvu.com/${campaign.id}`;
+                let urlCount = 0;
+                try {
+                    const urls = JSON.parse(campaign.urls || '[]');
+                    urlCount = urls.length;
+                } catch (e) {}
+
+                const createdAt = new Date(campaign.created_at).toLocaleString('zh-CN');
+
+                html += `
+                    <tr>
+                        <td><strong>${campaign.name || '未命名'}</strong></td>
+                        <td>
+                            <a href="${shortUrl}" target="_blank" class="short-link">
+                                ${shortUrl}
+                            </a>
+                        </td>
+                        <td>${campaign.total_clicks || 0}</td>
+                        <td>${urlCount}</td>
+                        <td>${createdAt}</td>
+                        <td>
+                            <a href="campaign_details.html?code=${campaign.id}">查看详情</a>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('campaignsContent').innerHTML = html;
+        }
+
+        // 页面加载时执行
+        window.addEventListener('DOMContentLoaded', loadCampaigns);
+    </script>
+</body>
+</html>
